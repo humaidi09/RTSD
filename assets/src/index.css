@@ -1,0 +1,313 @@
+@import "tailwindcss";
+
+/* Class-based dark mode — we toggle .dark / .light on <html> (see index.html
+   pre-paint script + ThemeContext). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/*  Design tokens (Tailwind v4).                                       */
+/*  Step 2's palette lives here as @theme tokens instead of            */
+/*  tailwind.config.js — this project is Tailwind v4, which compiles   */
+/*  colors to var(--color-*). Overriding a var (see .light) re-themes  */
+/*  the whole UI at runtime with no dark: prefixes.                    */
+/* ------------------------------------------------------------------ */
+@theme {
+  /* --- Spec palette (exact values from the brief) --- */
+  --color-bgDark: #030712;   /* page background   */
+  --color-cardDark: #090d16; /* card / panel      */
+  --color-neonCyan: #06b6d4;
+  --color-neonPurple: #8b5cf6;
+
+  /* --- Semantic aliases used across the UI + reused ui/ primitives --- */
+  /* These flip under .light; the spec brand values are the dark defaults. */
+  --color-void: #030712;     /* == bgDark   */
+  --color-surface: #090d16;  /* == cardDark */
+  --color-neon-cyan: #06b6d4;
+  --color-neon-violet: #8b5cf6;
+  --color-neon-magenta: #e879f9; /* tertiary accent */
+  --color-ink: #f3f4f6;      /* primary text  */
+  --color-muted: #94a3b8;    /* secondary text */
+
+  /* Theme-aware translucent overlays → bg-fill / border-hair utilities */
+  --color-hair: rgba(255, 255, 255, 0.10);
+  --color-fill: rgba(255, 255, 255, 0.05);
+  --color-fill-2: rgba(255, 255, 255, 0.09);
+  --color-hair-strong: rgba(255, 255, 255, 0.18); /* emphasis / hover borders */
+  --color-fill-strong: rgba(255, 255, 255, 0.10); /* emphasis / hover fills   */
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --animate-blink: blink 1.1s steps(1) infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-drift: drift 22s ease-in-out infinite;
+  --animate-drift-slow: drift 30s ease-in-out infinite reverse;
+  --animate-gradient: gradient-pan 6s ease infinite;
+  --animate-aurora: aurora 20s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 16s linear infinite;
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(6%, -5%) scale(1.08); }
+    66% { transform: translate(-5%, 4%) scale(0.96); }
+  }
+  @keyframes gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  @keyframes aurora {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33% { transform: translate3d(5%, -4%, 0) scale(1.12); }
+    66% { transform: translate3d(-4%, 5%, 0) scale(0.94); }
+  }
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+@layer base {
+  /* Non-utility theme vars (glass surfaces, dot-grid). Dark defaults. */
+  :root {
+    --glass-bg: color-mix(in oklab, #fff 4%, transparent);
+    --glass-border: color-mix(in oklab, #fff 9%, transparent);
+    --glass-strong-bg: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    --glass-strong-border: color-mix(in oklab, #fff 10%, transparent);
+    --dot: color-mix(in oklab, #fff 6%, transparent);
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: #030712; /* Step 2: default dark background */
+    background-color: var(--color-void);
+    color: #f3f4f6; /* Step 2: default text color */
+    color: var(--color-ink);
+    font-family: "Inter", sans-serif; /* Step 2: default font */
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-neon-cyan) 40%, transparent);
+    color: #fff;
+  }
+
+  /* Themed scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-void); }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--color-neon-violet) 45%, var(--color-surface));
+    border-radius: 999px;
+    border: 2px solid var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--color-neon-cyan) 55%, var(--color-surface));
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-neon-cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Reusable pieces                                                    */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Signature cyan → violet → magenta gradient ink */
+  .text-gradient {
+    background-image: linear-gradient(
+      110deg,
+      var(--color-neon-cyan),
+      var(--color-neon-violet) 45%,
+      var(--color-neon-magenta)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Animated variant — pans the gradient (for the hero name) */
+  .text-gradient-animate {
+    background-image: linear-gradient(
+      110deg,
+      var(--color-neon-cyan),
+      var(--color-neon-violet) 45%,
+      var(--color-neon-magenta),
+      var(--color-neon-cyan)
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: var(--animate-gradient);
+  }
+
+  /* Frosted glass surfaces (theme-aware) */
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    transition: background-color 0.4s ease, border-color 0.3s ease;
+  }
+
+  .glass-strong {
+    background: var(--glass-strong-bg);
+    border: 1px solid var(--glass-strong-border);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    transition: background-color 0.4s ease, border-color 0.3s ease;
+  }
+
+  /* Thin gradient hairline used to separate sections */
+  .rule-gradient {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-neon-violet) 60%, transparent),
+      transparent
+    );
+  }
+
+  /* Rotating conic halo used behind the hero code card */
+  .conic-ring {
+    background: conic-gradient(
+      from 0deg,
+      color-mix(in oklab, var(--color-neon-cyan) 85%, transparent),
+      color-mix(in oklab, var(--color-neon-violet) 85%, transparent),
+      color-mix(in oklab, var(--color-neon-magenta) 85%, transparent),
+      color-mix(in oklab, var(--color-neon-cyan) 85%, transparent)
+    );
+  }
+
+  /* Mono eyebrow above section headings */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--color-neon-cyan);
+  }
+
+  /*
+   * Terminal / code chrome that stays dark in BOTH themes. It pins the
+   * theme tokens to dark values locally, so text-ink / border-hair / bg-fill
+   * descendants render dark regardless of the page theme.
+   */
+  .code-surface {
+    --color-ink: #e8eaf6;
+    --color-muted: #8b93b8;
+    --color-surface: #090d16;
+    --color-hair: rgba(255, 255, 255, 0.10);
+    --color-fill: rgba(255, 255, 255, 0.05);
+    --color-fill-2: rgba(255, 255, 255, 0.09);
+    --color-hair-strong: rgba(255, 255, 255, 0.18);
+    --color-fill-strong: rgba(255, 255, 255, 0.10);
+    /* Keep syntax accents vivid regardless of page theme */
+    --color-neonCyan: #22d3ee;
+    --color-neonPurple: #a78bfa;
+    --color-neon-cyan: #22d3ee;
+    --color-neon-violet: #a78bfa;
+    --color-neon-magenta: #e879f9;
+    --glass-strong-bg: color-mix(in oklab, #090d16 84%, transparent);
+    --glass-strong-border: rgba(255, 255, 255, 0.10);
+    color: var(--color-ink);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Utilities                                                          */
+/* ------------------------------------------------------------------ */
+@layer utilities {
+  /* Fine dot grid page texture */
+  .bg-dot-grid {
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+    background-size: 34px 34px;
+  }
+
+  .glow-cyan { box-shadow: 0 0 40px -8px color-mix(in oklab, var(--color-neon-cyan) 60%, transparent); }
+  .glow-violet { box-shadow: 0 0 44px -8px color-mix(in oklab, var(--color-neon-violet) 60%, transparent); }
+
+  /* Fades a texture/grid toward the edges so it reads as ambient, not tiled */
+  .mask-radial-fade {
+    -webkit-mask-image: radial-gradient(ellipse 78% 68% at 50% 34%, #000 46%, transparent 100%);
+    mask-image: radial-gradient(ellipse 78% 68% at 50% 34%, #000 46%, transparent 100%);
+  }
+
+  /* Soft violet halo cast by the gradient headline glyphs */
+  .glow-text {
+    filter: drop-shadow(0 0 28px color-mix(in oklab, var(--color-neon-violet) 34%, transparent));
+  }
+
+  /* Hide scrollbar but keep scrolling (terminal body, filter row) */
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Light theme — unlayered so overrides win over @theme :root defaults */
+/* ------------------------------------------------------------------ */
+.light {
+  --color-void: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-neon-cyan: #0891b2;
+  --color-neon-violet: #7c3aed;
+  --color-neon-magenta: #c026d3;
+  /* Spec camelCase accents also flip so accent text/borders stay legible on light */
+  --color-neonCyan: #0891b2;
+  --color-neonPurple: #7c3aed;
+  --color-ink: #0b1020;
+  --color-muted: #55607a;
+
+  --color-hair: rgba(15, 23, 42, 0.12);
+  --color-fill: rgba(15, 23, 42, 0.045);
+  --color-fill-2: rgba(15, 23, 42, 0.08);
+  --color-hair-strong: rgba(15, 23, 42, 0.20);
+  --color-fill-strong: rgba(15, 23, 42, 0.10);
+
+  --glass-bg: color-mix(in oklab, #fff 62%, transparent);
+  --glass-border: rgba(15, 23, 42, 0.10);
+  --glass-strong-bg: color-mix(in oklab, #fff 78%, transparent);
+  --glass-strong-border: rgba(15, 23, 42, 0.10);
+  --dot: rgba(15, 23, 42, 0.05);
+
+  color-scheme: light;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
